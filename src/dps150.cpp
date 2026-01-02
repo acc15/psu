@@ -24,9 +24,7 @@ std::vector<std::string> find_ports() {
     std::vector<std::string> found_ports;
 
     rs_sp_port_list port_list;
-    if (!check_sp_error(sp_list_ports(&port_list))) {
-        return found_ports;
-    }
+    sp_ok(sp_list_ports(&port_list));
 
     struct sp_port* port;
     for (std::size_t i = 0; (port = port_list[i]) != nullptr; ++i) {
@@ -35,9 +33,7 @@ std::vector<std::string> find_ports() {
             continue;
         }
         int usb_vid, usb_pid;
-        if (!check_sp_error(sp_get_port_usb_vid_pid(port, &usb_vid, &usb_pid))) {
-            continue;
-        }
+        sp_ok(sp_get_port_usb_vid_pid(port, &usb_vid, &usb_pid));
         if (usb_vid == VID && usb_pid == PID) {
             found_ports.push_back(sp_get_port_name(port));
         }
