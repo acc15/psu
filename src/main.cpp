@@ -22,5 +22,7 @@ int main() {
     psu::sp_ok(sp_get_port_by_name(found_port_names.front().c_str(), &port));
     psu::sp_ok(sp_open(port, sp_mode::SP_MODE_READ_WRITE));
 
+    
+
     return 0;
 }
