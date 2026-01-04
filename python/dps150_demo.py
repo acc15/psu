@@ -173,7 +173,6 @@ class Field(IntEnum):
 @dataclass
 class DataFrame:
     
-    dir: Dir
     action: Action
     field: Field
     payload: bytes
@@ -185,7 +184,7 @@ class DataFrame:
     
     @staticmethod
     def tx(action: Action, field: Field, payload: bytes = b""):
-        return DataFrame(Dir.TX, action, field, payload, DataFrame.compute_checksum(field.value, payload)).to_bytes()
+        return DataFrame(action, field, payload, DataFrame.compute_checksum(field.value, payload)).to_bytes()
 
     def verify_checksum(self) -> bool:
         return DataFrame.compute_checksum(self.field.value, self.payload) == self.checksum
@@ -203,11 +202,11 @@ class DataFrame:
         if len(head) != 3:
             return None
         tail = port.read(head[2] + 1)
-        return DataFrame(Dir(start_seq[-1]), Action(head[0]), Field(head[1]), tail[:-1], tail[-1])
+        return DataFrame(Action(head[0]), Field(head[1]), tail[:-1], tail[-1])
 
     def to_bytes(self) -> bytes:
         return bytes([
-            self.dir.value, 
+            Dir.TX.value, 
             self.action.value, 
             self.field.value, 
             len(self.payload)

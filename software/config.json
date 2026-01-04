@@ -1,0 +1,84 @@
+{
+  "languageMode": 0,
+  "configScanV": {
+    "V": 1.0,
+    "startA": 1.0,
+    "stopA": 5.0,
+    "stepA": 1.0,
+    "sleepTime": 1.0
+  },
+  "configScanA": {
+    "A": 5.0,
+    "startV": 1.0,
+    "stopV": 5.0,
+    "stepV": 1.0,
+    "sleepTime": 1.0
+  },
+  "configAutoScan": {
+    "whileCount": 1.0,
+    "startSn": 1.0,
+    "stopSn": 10.0
+  },
+  "configTableDatas": [
+    {
+      "sn": 1,
+      "V": 1.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 2,
+      "V": 2.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 3,
+      "V": 3.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 4,
+      "V": 4.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 5,
+      "V": 5.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 6,
+      "V": 6.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 7,
+      "V": 7.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 8,
+      "V": 8.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 9,
+      "V": 9.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    },
+    {
+      "sn": 10,
+      "V": 10.0,
+      "A": 1.0,
+      "sleepTime": 1.0
+    }
+  ]
+}
