@@ -31,7 +31,7 @@ class ProtectionState(IntEnum):
     REP = 6
 
     @staticmethod
-    def format(payload: bytes):
+    def from_bytes(payload: bytes):
         return ProtectionState(*struct.unpack("B", payload))
 
 @dataclass
@@ -41,7 +41,7 @@ class Measurement:
     power: float
 
     @staticmethod
-    def format(payload: bytes):
+    def from_bytes(payload: bytes):
         return Measurement(*struct.unpack("<fff", payload))
 
 def int_format(b: bytes) -> int:
@@ -104,7 +104,7 @@ class Dump:
     max_lvp: float # Maximum LVP (30V)
 
     @staticmethod
-    def format(payload: bytes):
+    def from_bytes(payload: bytes):
         return Dump(*struct.unpack("<ffffffffffffffffffffffffBB?ff?B?Bfffffff", payload))
 
 class Field(IntEnum):
@@ -121,7 +121,7 @@ class Field(IntEnum):
     INPUT_VOLTAGE = 0xC0, float_format
     V_SET = 0xC1, float_format
     I_SET = 0xC2, float_format
-    MEASUREMENT = 0xC3, Measurement.format,  # 3 floats with measured Voltage, Current, Power
+    MEASUREMENT = 0xC3, Measurement.from_bytes,  # 3 floats with measured Voltage, Current, Power
     TEMPERATURE = 0xC4, float_format
 
     M1_VOLTAGE = 0xC5, float_format
@@ -150,7 +150,7 @@ class Field(IntEnum):
     CAPACITY = 0xD9, float_format # Measured capacity (Ampere/Hour)
     ENERGY = 0xDA, float_format # Measured energy (Watt/Hour)
     RUNNING = 0xDB, bool_format # RUN = 1, STOP = 0
-    PROTECTION = 0xDC, ProtectionState.format  # current protection state
+    PROTECTION = 0xDC, ProtectionState.from_bytes  # current protection state
     CV_CC = 0xDD, bool_format # CV == 1, CC == 0
 
     MODEL_NAME = 0xDE, str_format # Model name (DPS-150)
@@ -167,7 +167,7 @@ class Field(IntEnum):
     MAX_OTP = 0xE7, float_format # Maximum OTP value (99C)
     MAX_LVP = 0xE8, float_format # Maximum LVP value (30V)
 
-    ALL = 0xFF, Dump.format
+    ALL = 0xFF, Dump.from_bytes
     
 
 @dataclass
@@ -176,22 +176,16 @@ class DataFrame:
     action: Action
     field: Field
     payload: bytes
-    checksum: int
 
-    @staticmethod
-    def compute_checksum(field: int, payload: bytes) -> int:
-        return (field + len(payload) + sum(payload)) & 0xFF
-    
-    @staticmethod
-    def tx(action: Action, field: Field, payload: bytes = b""):
-        return DataFrame(action, field, payload, DataFrame.compute_checksum(field.value, payload)).to_bytes()
-
-    def verify_checksum(self) -> bool:
-        return DataFrame.compute_checksum(self.field.value, self.payload) == self.checksum
+    def compute_checksum(self) -> int:
+        return (self.field.value + len(self.payload) + sum(self.payload)) & 0xFF
     
     def total_bytes(self) -> int:
         return len(self.payload) + 5
     
+    def write(self, port: serial.Serial):
+        port.write(bytes(self))
+
     @staticmethod
     def read(port: serial.Serial) -> "DataFrame | None":
         rx_seq = Dir.RX.as_bytes()
@@ -202,15 +196,20 @@ class DataFrame:
         if len(head) != 3:
             return None
         tail = port.read(head[2] + 1)
-        return DataFrame(Action(head[0]), Field(head[1]), tail[:-1], tail[-1])
+        frame = DataFrame(Action(head[0]), Field(head[1]), tail[:-1])
+        data_checksum = tail[-1]
+        computed_checksum = frame.compute_checksum()
+        if data_checksum != computed_checksum:
+            raise RuntimeError(f"DPS-150: Checksum mismatch. Data checksum: {data_checksum:02X}, computed checksum: {computed_checksum:02X}")
+        return frame
 
-    def to_bytes(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return bytes([
             Dir.TX.value, 
             self.action.value, 
             self.field.value, 
             len(self.payload)
-        ]) + self.payload + bytes([self.checksum])
+        ]) + self.payload + bytes([self.compute_checksum()])
     
 
 port = serial.Serial(
@@ -225,11 +224,11 @@ port = serial.Serial(
 def read_frames(port: serial.Serial):
     while (frame := DataFrame.read(port)) is not None:
         d = {
-            "Frame": frame.to_bytes().hex(),
+            "Frame": bytes(frame).hex(),
             "Action": f"{frame.action.name}({frame.action.value}, {frame.action.value:2X})",
             "Field": f"{frame.field.name}({frame.field.value}, {frame.field.value:2X})",
             "Payload": frame.payload.hex().upper(),
-            "Checksum": f"{frame.checksum:2X}",
+            "Checksum": f"{frame.compute_checksum():2X}",
             "Valid": "OK" if frame.verify_checksum() else "FAIL"
         }
 
@@ -238,39 +237,39 @@ def read_frames(port: serial.Serial):
 
         print(", ".join(k + "=" + v for k, v in d.items()))
 
-if port.is_open:
+if port.is_open:l,k.
     print("opened")
 
 print("LOCK")
 port.write(DataFrame.tx(Action.LOCK, Field.NONE, b"\x01"))
 try:
 
-    baud_rate_value = BAUD_RATES.get(port.baudrate, 0) 
+    baud_rate_value = BAUD_RATES.get(port.baudrate, 0) /
     print(f"READ INIT DATA, BAUDRATE = {baud_rate_value}")
 
-    port.write(DataFrame.tx(Action.BAUD, Field.NONE, bytes([baud_rate_value])))
-    port.write(DataFrame.tx(Action.GET, Field.MODEL_NAME))
-    port.write(DataFrame.tx(Action.GET, Field.FIRMWARE_VERSION))
-    port.write(DataFrame.tx(Action.GET, Field.HARDWARE_VERSION))
-    port.write(DataFrame.tx(Action.GET, Field.PROTECTION))
-    port.write(DataFrame.tx(Action.GET, Field.IDENTIFIER))
-    port.write(DataFrame.tx(Action.GET, Field.CV_CC))
-    port.write(DataFrame.tx(Action.SET, Field.METERING, b"\x01"))
-    port.write(DataFrame.tx(Action.GET, Field.BRIGHTNESS))
-    port.write(DataFrame.tx(Action.GET, Field.VOLUME))
-    port.write(DataFrame.tx(Action.GET, Field.ALL))
+    DataFrame(Action.BAUD, Field.NONE, bytes([baud_rate_value])).write(port)
+    DataFrame(Action.GET, Field.MODEL_NAME).write(port)
+    DataFrame(Action.GET, Field.FIRMWARE_VERSION).write(port)
+    DataFrame(Action.GET, Field.HARDWARE_VERSION).write(port)
+    DataFrame(Action.GET, Field.PROTECTION).write(port)
+    DataFrame(Action.GET, Field.IDENTIFIER).write(port)
+    DataFrame(Action.GET, Field.CV_CC).write(port)
+    DataFrame(Action.SET, Field.METERING, b"\x01").write(port)
+    DataFrame(Action.GET, Field.BRIGHTNESS).write(port)
+    DataFrame(Action.GET, Field.VOLUME).write(port)
+    DataFrame(Action.GET, Field.ALL).write(port)
     
     read_frames(port)
 
     print("V_SET")
 
-    port.write(DataFrame.tx(Action.SET, Field.V_SET, struct.pack("<f", 1.9)))
+    DataFrame(Action.SET, Field.V_SET, struct.pack("<f", 1.9)).write(port)
     for i in range(1,5):
         read_frames(port)
 
     print("RUN")
 
-    port.write(DataFrame.tx(Action.SET, Field.RUNNING, b"\x01"))
+    DataFrame(Action.SET, Field.RUNNING, b"\x01").write(port)
     
     for i in range(1,5):
         read_frames(port)
@@ -278,7 +277,7 @@ try:
 
     print("STOP")
 
-    port.write(DataFrame.tx(Action.SET, Field.RUNNING, b"\x00"))
+    DataFrame(Action.SET, Field.RUNNING, b"\x00").write(port)
     for i in range(1,5):
         read_frames(port)
 
