@@ -1,8 +1,9 @@
 #pragma once
 
 #include <libserialport.h>
+#include <string>
 
-#include "utils.hpp"
+#include "psu/utils.hpp"
 
 namespace psu {
 

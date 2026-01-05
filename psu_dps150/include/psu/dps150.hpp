@@ -9,7 +9,7 @@ namespace psu::dps150 {
 constexpr int VID = 0x2e3c;
 constexpr int PID = 0x5740;
 
-enum class transfer_dir: std::uint8_t {
+enum class dir: std::uint8_t {
     TX = 0xF1,
     RX = 0xF0
 };
@@ -31,7 +31,7 @@ constexpr std::uint32_t baud_rates[] = {
 };
 
 enum class state: std::uint8_t {
-    NONE = 0,
+    OK = 0,
     OVP = 1,
     OCP = 2,
     OPP = 3,
@@ -135,7 +135,7 @@ enum class field: std::uint8_t {
 };
 
 struct frame {
-    transfer_dir dir;
+    enum dir dir;
     enum action action;
     enum field field;
     std::vector<std::uint8_t> payload;

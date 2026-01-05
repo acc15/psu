@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "dps150.hpp"
+#include "psu/dps150.hpp"
 
 #include <array>
 

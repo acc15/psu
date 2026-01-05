@@ -1,10 +1,10 @@
-#include "dps150.hpp"
-
 #include <iterator>
 #include <numeric>
 #include <algorithm>
+#include <libserialport.h>
 
 #include "sp_utils.hpp"
+#include "psu/dps150.hpp"
 
 namespace psu::dps150 {
 
