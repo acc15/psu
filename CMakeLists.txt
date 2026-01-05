@@ -4,9 +4,6 @@ project(psu)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(libserialport REQUIRED IMPORTED_TARGET libserialport)
-
 option(BUILD_TESTING "Build tests or not" OFF)
 if(BUILD_TESTING)
     enable_testing()
@@ -14,6 +11,8 @@ if(BUILD_TESTING)
     include(Catch)
 endif()
 
-add_subdirectory(psu_core)
-add_subdirectory(psu_dps150)
+add_subdirectory(core)
+add_subdirectory(dps150)
+add_subdirectory(dp100)
+add_subdirectory(gui)
 
