@@ -5,10 +5,35 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Any, cast
 from decimal import Decimal
+import logging
 
-class Dir(enum.IntEnum):
+import utils
+
+class Dir(utils.IntEnumWithHexStr):
     HOST_TO_DEVICE = 0xFB
     DEVICE_TO_HOST = 0xFA
+
+class Output(utils.IntEnumWithHexStr):
+    CC = 0
+    CV = 1
+    STOPPED = 2
+    NO_INPUT = 130
+
+class State(utils.IntEnumWithHexStr):
+    OK = 0
+    OVP = 1
+    OCP = 2
+    OPP = 3
+    OTP = 4
+    REP = 5
+    UVP = 6
+
+class BasicSetOp(utils.IntEnumWithHexStr):
+    GET_PRESET = 0,
+    SET_CURRENT = 2,
+    SET_PRESET = 6,
+    GET_CURRENT = 8,
+    USE_PRESET = 10
 
 
 @dataclass
@@ -57,7 +82,7 @@ class SystemInfo:
         result.opp = Decimal(result.opp).scaleb(-1)
         return result
 
-    def __bytes__(self):
+    def to_bytes(self):
         return struct.pack("<HHBB??", 
             int(self.otp), 
             int(self.opp.scaleb(1)), 
@@ -66,21 +91,6 @@ class SystemInfo:
             self.rep, 
             self.auto_on
         )
-
-class Output(enum.IntEnum):
-    CC = 0
-    CV = 1
-    STOPPED = 2
-    NO_INPUT = 130
-
-class State(enum.IntEnum):
-    OK = 0
-    OVP = 1
-    OCP = 2
-    OPP = 3
-    OTP = 4
-    REP = 5
-    UVP = 6
 
 @dataclass
 class BasicInfo:
@@ -110,12 +120,6 @@ class BasicInfo:
         result.state = State(result.state)
         return result
 
-class BasicSetOp(enum.IntEnum):
-    GET_PRESET = 0,
-    SET_CURRENT = 2,
-    SET_PRESET = 6,
-    GET_CURRENT = 8,
-    USE_PRESET = 10
 
 @dataclass
 class BasicSetAction:
@@ -128,7 +132,7 @@ class BasicSetAction:
     def __int__(self):
         return ((self.op.value << 4) & 0xF0) | (self.preset & 0x0F)
     
-    def __bytes__(self):
+    def to_bytes(self):
         if self.op == BasicSetOp.USE_PRESET:
             return bytes([int(self),0,0,0,0,0,0,0,0,0])
         return bytes([int(self)])
@@ -158,7 +162,7 @@ class BasicSet:
         )
         return result
     
-    def __bytes__(self):
+    def to_bytes(self):
         return struct.pack("<B?HHHH", 
             int(self.action),
             self.on,
@@ -169,9 +173,20 @@ class BasicSet:
         )
 
 
+def modbus_crc16(data:bytes) -> int:
+    crc = 0xFFFF
+    for n in data:
+        crc ^= n
+        for _ in range(8):
+            if crc & 1:
+                crc >>= 1
+                crc ^= 0xA001
+            else:
+                crc >>= 1
+    return crc
 
-class Operation(enum.IntEnum):
 
+class Op(utils.IntEnumWithHexStr):
     formatter: Callable[[bytes],Any] | None
 
     def __new__(cls, value: int, format: Callable[[bytes],Any] | None):
@@ -194,103 +209,119 @@ class Operation(enum.IntEnum):
     SERIAL_OUT = 0x55, None
     DISCONNECT = 0x80, None
 
-
-def modbus_crc(data:bytes) -> int:
-    crc = 0xFFFF
-    for n in data:
-        crc ^= n
-        for _ in range(8):
-            if crc & 1:
-                crc >>= 1
-                crc ^= 0xA001
-            else:
-                crc >>= 1
-    return crc
-
 @dataclass
 class Frame:
-    op: Operation
-    payload: bytes = b""
+    dir: Dir
+    op: Op
+    sequence: int
+    payload: bytes
+    checksum: int
 
-    def __post_init__(self):
-        if not isinstance(self.payload, bytes):
-            self.payload = bytes(self.payload) 
-
+    @staticmethod
+    def v(op: Op, payload: Any|None = None) -> "Frame":
+        frame = Frame(Dir.HOST_TO_DEVICE, op, 0x0, utils.generic_to_bytes(payload), 0)
+        frame.checksum = frame.compute_checksum()
+        return frame
 
     def write(self, h: hid.Device):
-        print(">>", self)
-        return h.write(bytes(self))
+        logging.info(">> %s", self.log_format())
+        return h.write(self.to_bytes())
 
     @staticmethod
     def read(h: hid.Device, timeout: Any | None = 1) -> "tuple[Frame, Any | None]":
-        return Frame.decode(h.read(64, timeout))
+        frame = Frame.from_bytes(h.read(64, timeout))
+        logging.info("<< %s", frame.log_format())
+        return (frame, frame.decode())
 
-    @staticmethod
-    def decode(frame_data: bytes) -> "tuple[Frame, Any | None]":
-        frame = Frame.from_bytes(frame_data)
-        parsed_frame = None
-        if frame.op.formatter is not None:
-            parsed_frame = frame.op.formatter(frame.payload)
-        return (frame, parsed_frame)
+    def decode(self) -> Any | None:
+        return (self.op.formatter(self.payload) 
+                if self.dir == Dir.DEVICE_TO_HOST and self.op.formatter is not None 
+                else None)
 
     @staticmethod
     def from_bytes(data: bytes) -> "Frame":
-        if data[0] != Dir.DEVICE_TO_HOST.value:
-            raise RuntimeError(f"DP100. Invalid data flow direction byte: {data[0]:02X}")
-        data_crc = struct.unpack("<H", data[4+data[3]:4+data[3]+2])[0]
-        computed_crc = modbus_crc(data[0:4+data[3]])        
-        if data_crc != computed_crc:
-            raise RuntimeError(f"DP100. Invalid CRC16 value. Data CRC: {data_crc:04X}, computed CRC: {computed_crc:04X}")
-        return Frame(Operation(data[1]), data[4:4+data[3]])
+        dir_byte, op, sequence, payload_len = struct.unpack("<BBBB", data[:4])
+        dir = Dir(dir_byte)
+        
+        if dir != Dir.DEVICE_TO_HOST:
+            raise RuntimeError(f"DP100. Invalid data flow direction byte: {dir:02X}")
+        
+        payload = data[4:4+payload_len]
+        checksum = struct.unpack("<H", data[4+payload_len:4+payload_len+2])[0]
+        return Frame(dir, Op(op), sequence, payload, checksum)
+    
+    def head_bytes(self):
+        return struct.pack("<BBBB", self.dir, self.op, self.sequence, len(self.payload)) + self.payload
 
-    def __bytes__(self):
-        frame_data = bytes([
-            Dir.HOST_TO_DEVICE, 
-            self.op.value, 
-            0x0, 
-            len(self.payload)]) + self.payload
-        crc = modbus_crc(frame_data)
-        data = frame_data + struct.pack("<H", crc)
-        return data
+    def compute_checksum(self):
+        return modbus_crc16(self.head_bytes())
+    
+    def verify_checksum(self):
+        return self.checksum == self.compute_checksum()
+
+    def to_bytes(self):
+        return self.head_bytes() + struct.pack("<H", self.checksum)
+    
+    def log_format(self) -> str:
+        d = {
+            "Frame": self.to_bytes().hex().upper(),
+            "Dir": self.dir,
+            "Op": self.op,
+            "Payload": self.payload.hex().upper(),
+            "Checksum": f"0x{self.checksum:02X}",
+            "Valid": "OK" if self.verify_checksum() else "FAIL",
+            "Value": self.decode()
+        }
+        return ", ".join(k + "=" + str(v) for k, v in d.items())
 
 
 with hid.Device(0x2e3c, 0xaf01) as h:
-    print(f'Device manufacturer: {h.manufacturer}')
-    print(f'Product: {h.product}')
-    print(f'Serial Number: {h.serial}')
+    logging.info("Device manufacturer: %s", h.manufacturer)
+    logging.info("Product: %s", h.product)
+    logging.info("Serial Number: %s", h.serial)
 
-    Frame(Operation.DEVICE_INFO).write(h)
-    print(Frame.decode(h.read(64, 1)))
+    Frame.v(Op.DEVICE_INFO).write(h)
+    Frame.read(h)
 
-    Frame(Operation.FIRMWARE_INFO).write(h)
-    print(Frame.decode(h.read(64, 1)))
+    Frame.v(Op.FIRMWARE_INFO).write(h)
+    Frame.read(h)
 
-    Frame(Operation.SYSTEM_INFO).write(h)
+    Frame.v(Op.SYSTEM_INFO).write(h)
     si: SystemInfo
-    f, si = Frame.decode(h.read(64, 1))
-    print((f, si))
+    _, si = Frame.read(h)
 
-    # time.sleep(1)
+    b_set = BasicSet(
+        BasicSetAction(BasicSetOp.SET_CURRENT, 0), 
+        False, 
+        Decimal(1), 
+        Decimal(0.01), 
+        Decimal(30.5), 
+        Decimal(5.05)
+    )
 
     for i in range(5):
         si.backlight = i
-        Frame(Operation.SYSTEM_INFO, si).write(h)
-        print(Frame.decode(h.read(64, 1)))
+        Frame.v(Op.SYSTEM_INFO, si).write(h)
+        Frame.read(h)
         
-        Frame(Operation.BASIC_SET, BasicSet(
-            BasicSetAction(BasicSetOp.SET_CURRENT, 0), 
-            False, 
-            Decimal(i), 
-            Decimal(0.1), 
-            Decimal(30.5), 
-            Decimal(5.05)
-        )).write(h)
-        
-        print(Frame.decode(h.read(64, 1)))
+        b_set.on = True
+        b_set.v_set = Decimal(i)
+
+        Frame.v(Op.BASIC_SET, b_set).write(h)
+        Frame.read(h)
+
+        Frame.v(Op.BASIC_INFO).write(h)
+        Frame.read(h)
+
         time.sleep(1)
 
+    Frame.v(Op.BASIC_INFO).write(h)
+    Frame.read(h)
 
-    # Frame(Operation.SYSTEM_SET).write(h)
+    b_set.on = False
+    Frame.v(Op.BASIC_SET, b_set).write(h)
+
+    # Frame.v(Operation.SYSTEM_SET).write(h)
     # print(Frame.decode(h.read(64, 1)))
 
     # time.sleep(1)
