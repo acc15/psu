@@ -1,5 +1,4 @@
 import hid
-import enum
 import struct
 import time
 from dataclasses import dataclass
