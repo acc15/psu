@@ -1,20 +1,9 @@
 #include <QApplication>
-#include <QPushButton>
-#include <QWidget>
-#include <QVBoxLayout>
+#include "mainwindow.hpp"
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-
-    QWidget window;
-    window.setWindowTitle("Qt 2026 App");
-    window.resize(300, 200);
-
-    QVBoxLayout *layout = new QVBoxLayout(&window);
-    QPushButton *button = new QPushButton("Hello Qt!", &window);
-    
-    layout->addWidget(button);
+    psu::gui::MainWindow window;
     window.show();
-
     return app.exec();
 }
