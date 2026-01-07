@@ -6,35 +6,49 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>786</width>
+    <height>233</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>PSU</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-    <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-        <widget class="QLabel" name="label">
-          <property name="text">
-           <string>Hello, Qt World!</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-        </widget>
-      </item>
-      <item>
-        <widget class="QPushButton" name="exitButton">
-          <property name="text">
-           <string>Exit</string>
-          </property>
-        </widget>
-      </item>
-    </layout>
+   <layout class="QHBoxLayout" name="_2">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+      <widget class="QTextEdit" name="text1"/>
+      <widget class="QTextEdit" name="text2"/>
+      <widget class="QTextEdit" name="text3"/>
+     </widget>
+    </item>
+   </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>786</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAdd">
+    <property name="title">
+     <string>&amp;Add</string>
+    </property>
+    <addaction name="actionPSU"/>
+   </widget>
+   <addaction name="menuAdd"/>
+  </widget>
+  <action name="actionPSU">
+   <property name="text">
+    <string>&amp;PSU</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

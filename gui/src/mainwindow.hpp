@@ -2,9 +2,7 @@
 
 #include <QMainWindow>
 
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
+QT_BEGIN_NAMESPACE namespace Ui { class MainWindow; } QT_END_NAMESPACE
 
 namespace psu::gui {
 
@@ -15,10 +13,11 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_exitButton_clicked();  // Slot for button click
+    void on_actionPSU_triggered();
 
 private:
-    Ui::MainWindow* ui;
+    Ui::MainWindow* ui_;
+    int count_;
 };
 
 }

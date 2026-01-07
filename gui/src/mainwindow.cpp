@@ -1,23 +1,29 @@
 #include "mainwindow.hpp"
 #include <QMessageBox>
+#include <QDebug>
+#include <QString>
+#include <QDockWidget>
 #include "./ui_mainwindow.h"
 
 namespace psu::gui {
 
 MainWindow::MainWindow(QWidget *parent): 
     QMainWindow(parent), 
-    ui(new Ui::MainWindow) 
+    ui_(new Ui::MainWindow),
+    count_(0)
 {
-    ui->setupUi(this);
+    ui_->setupUi(this);
 }
 
 MainWindow::~MainWindow() {
-    delete ui;
+    delete ui_;
 }
 
-void MainWindow::on_exitButton_clicked() {
-    QMessageBox::information(this, "Information", "Application will close");
-    QApplication::quit();
+void MainWindow::on_actionPSU_triggered() {
+    QDockWidget* dock = new QDockWidget(QString("Hello %1").arg(++count_), this);
+    dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    addDockWidget(Qt::DockWidgetArea::RightDockWidgetArea, dock);
 }
+
 
 }
