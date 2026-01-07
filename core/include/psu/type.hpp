@@ -13,24 +13,19 @@ enum class type {
 };
 
 struct typed_value {
-    using type = std::variant<
+    using variant = std::variant<
         unsigned int,
         float, 
         std::string
     >;
 
-    type value;
+    variant value;
+
+    type type() const {
+        return static_cast<enum type>(value.index());
+    }
 };
-
-
-struct enum_type {
-    std::string name;
-    typed_value value;
-};
-
 
 using properties = std::unordered_map<std::string, typed_value>;
-
-    
 
 }

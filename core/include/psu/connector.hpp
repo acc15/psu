@@ -4,18 +4,9 @@
 #include <vector>
 #include <memory>
 
+#include "port.hpp"
+
 namespace psu {
-
-struct port {
-    std::string type;
-    std::string description;
-    std::string name;
-
-    /**
-     * Custom port data for faster connection to device
-     */
-    mutable void* data;
-};
 
 class connector {
 public:
@@ -31,13 +22,6 @@ public:
      * Connects to device (opens port and)
      */
     virtual std::unique_ptr<connector> connect(const port& descriptor) = 0;
-
-};
-
-class psu {
-
-
-    // virtual std::vector<
 
 };
 
