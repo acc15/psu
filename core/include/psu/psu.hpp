@@ -1,8 +1,17 @@
 #pragma once
 
-#include <span>
+#include <string>
+#include <functional>
+
+#include "type.hpp"
 
 namespace psu {
+
+enum class mode {
+    OFF,
+    CV,
+    CC
+};
 
 enum class protection {
     OK,
@@ -13,41 +22,82 @@ enum class protection {
     LVP
 };
 
+class psu;
+
 template <typename T>
-struct psu_value {
-    void query(); // query value update
-    const T& get() const; // return current instant value
-    bool set(const T& value); // sets new value and schedules device update
-    bool readonly() const; // checks whether its readonly (like measured voltage), or its rw (can be retrieved and changed)
+class psu_value {
+    
+    T value_;
+
+    std::function<void(psu_value<T>&)> on_set;
+    std::function<void(psu_value<T>&)> on_query;
+
+public:
+    std::function<void(psu_value<T>&)> on_change;
+
+    void query() {
+        if (on_query) {
+            on_query(*this);
+        }
+    }
+    
+    operator const T&() const {
+        return value_;
+    }
+
+    psu_value<T>& operator=(const T& value) {
+        if (on_set) {
+            value_ = value;
+            on_set(*this);
+        }
+        return *this;
+    }
+
+    bool readonly() const {
+        return static_cast<bool>(on_set);
+    }
+
+    friend psu;
 };
 
 struct psu_preset {
     psu_value<float> v;
     psu_value<float> i;
+    props_value rest;
 };
 
-struct psu {
+class psu {
 
-    psu_value<float> v_cur;
-    psu_value<float> i_cur;
-    psu_value<float> p_cur;
+protected:
+    template<typename T>
+    void update(psu_value<T>& psu_value, const T& value) {
+        psu_value.value_ = value;
+        if (psu_value.on_change) {
+            psu_value.on_change(psu_value);
+        }
+    }
 
-    psu_value<float> v_set;
-    psu_value<float> i_set;
+public:
+    psu_value<float>        v_cur;
+    psu_value<float>        i_cur;
+    psu_value<float>        p_cur;
+
+    psu_value<float>        v_set;
+    psu_value<float>        i_set;
     
-    psu_value<bool> running;
-    psu_value<protection> state;
+    psu_value<mode>         mode;
+    psu_value<protection>   state;
 
-    psu_value<float> temp;
-    psu_value<float> ovp;
-    psu_value<float> ocp;
-    psu_value<float> opp;
-    psu_value<float> otp;
-    psu_value<float> lvp;
+    psu_value<float>        temperature;
+    psu_value<float>        ovp;
+    psu_value<float>        ocp;
+    psu_value<float>        opp;
+    psu_value<float>        otp;
+    psu_value<float>        lvp;
 
-    std::span<psu_preset> presets; // presets span (its pointer to internal implementation array or std::vector)
+    std::vector<psu_preset> presets; // presets span (its pointer to internal implementation array or std::vector)
 
-    //std::unordered_map<std::string, psu_value<typed_value>>& rest;
+    props_value rest;
 
 
     // virtual std::vector<va> presets() = 0;

@@ -9,8 +9,8 @@ template <typename T>
 class psu_value {
     T value_;
 
-    std::function<void(const T&)> query_;
-    std::function<void(const T&)> set_;
+    std::function<void(const T&)> on_query;
+    std::function<void(const T&)> on_set;
     std::function<void(const T&)> update_;
 
 public:
@@ -23,7 +23,7 @@ public:
     void set(const T& v) const {
         if (value_ != v) {
             value_ = v;
-            if (set_) set_(value_);
+            if (on_set) on_set(value_);
         }
     }
 
@@ -35,7 +35,7 @@ public:
     }
 
     void query() {
-        if (query_) query_();
+        if (on_query) on_query();
     }
 
 };
