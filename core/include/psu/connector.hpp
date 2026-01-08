@@ -2,10 +2,13 @@
 
 #include <string_view>
 #include <vector>
+#include <functional>
+#include <utility>
+#include <string>
 #include <memory>
 
 #include "type.hpp"
-#include "port.hpp"
+#include "psu.hpp"
 
 
 namespace psu {
@@ -18,7 +21,7 @@ public:
     /**
      * Lists all device ports
      */
-    virtual std::vector<port> list_ports() = 0;
+    virtual std::vector<std::pair<std::string, std::string>> list_ports() = 0;
 
     /**
      * Additional connector-specific properties. Examples of such properties are:
@@ -31,9 +34,13 @@ public:
     virtual const props_def& properties() = 0;
 
     /**
-     * Connects to device (opens port and)
+     * Connects to device (opens port, ensures that protocol is ok, its correct device)
      */
-    virtual std::unique_ptr<connector> connect(const port& port, const props& props) = 0;
+    virtual void connect(
+        const std::string& path, 
+        const props& props, 
+        const std::function<void(std::unique_ptr<psu>, std::exception_ptr)&>
+    ) = 0;
 
 };
 

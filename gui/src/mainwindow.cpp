@@ -5,7 +5,7 @@
 #include <QDockWidget>
 #include "./ui_mainwindow.h"
 
-namespace psu::gui {
+namespace psu::ui {
 
 MainWindow::MainWindow(QWidget *parent): 
     QMainWindow(parent), 

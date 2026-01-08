@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
 #endif
     
     QApplication app(argc, argv);
-    psu::gui::MainWindow window;
+    psu::ui::MainWindow window;
     window.show();
     return app.exec();
 }

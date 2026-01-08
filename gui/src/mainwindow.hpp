@@ -4,7 +4,7 @@
 
 QT_BEGIN_NAMESPACE namespace Ui { class MainWindow; } QT_END_NAMESPACE
 
-namespace psu::gui {
+namespace psu::ui {
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
