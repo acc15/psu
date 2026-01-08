@@ -13,8 +13,9 @@ enum class protection {
     OCP,
     OPP,
     OTP,
-    LVP,
+    LVP
 };
+
 
 class psu {
 
