@@ -2,7 +2,7 @@
 
 #include <format>
 
-namespace psu {
+namespace psu::dps150 {
 
 sp_error::sp_error(int error_code, const std::string& error_message) noexcept : 
     std::runtime_error(std::format("SP_ERR_FAIL, OS error code: {}, message: {}", error_code, error_message)),

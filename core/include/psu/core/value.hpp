@@ -2,8 +2,7 @@
 
 #include <functional>
 
-namespace psu {
-
+namespace psu::core {
 
 template <typename T>
 class psu_value {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
 #include <functional>
+#include <span>
 
 #include "type.hpp"
 
-namespace psu {
+namespace psu::core {
 
 enum class mode {
     OFF,
@@ -77,6 +77,8 @@ protected:
         }
     }
 
+    std::vector<psu_preset> presets_; // presets span (its pointer to internal implementation array or std::vector)
+
 public:
     psu_value<float>        v_cur;
     psu_value<float>        i_cur;
@@ -95,7 +97,9 @@ public:
     psu_value<float>        otp;
     psu_value<float>        lvp;
 
-    std::vector<psu_preset> presets; // presets span (its pointer to internal implementation array or std::vector)
+    std::span<psu_preset> presets() {
+        return presets_;
+    }
 
     props_value rest;
 

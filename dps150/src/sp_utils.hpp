@@ -3,9 +3,9 @@
 #include <libserialport.h>
 #include <string>
 
-#include "psu/utils.hpp"
+#include "psu/core/utils.hpp"
 
-namespace psu {
+namespace psu::dps150 {
 
 class sp_error: public std::runtime_error {
     int error_code_;
@@ -18,9 +18,8 @@ public:
 
 void sp_ok(enum sp_return ret);
 
-using rs_sp_port = resource<struct sp_port*, sp_free_port>;
-using rs_sp_port_list = resource<struct sp_port**, sp_free_port_list>;
-
+using rs_sp_port = psu::core::resource<struct sp_port*, sp_free_port>;
+using rs_sp_port_list = psu::core::resource<struct sp_port**, sp_free_port_list>;
 
 
 }

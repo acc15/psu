@@ -11,11 +11,14 @@
 #include "psu.hpp"
 
 
-namespace psu {
+namespace psu::core {
 
 class connector {
 public:
 
+    /**
+     * Returns supported device class (or name)
+     */
     virtual std::string_view name() = 0;
 
     /**

@@ -4,7 +4,7 @@
 #include <libserialport.h>
 
 #include "sp_utils.hpp"
-#include "psu/dps150.hpp"
+#include "psu/dps150/dps150.hpp"
 
 namespace psu::dps150 {
 

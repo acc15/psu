@@ -3,7 +3,7 @@
 #include <string>
 #include <ranges>
 
-namespace psu {
+namespace psu::core {
 
 template <typename T, auto Deleter, T default_value = {}>
 struct [[nodiscard]] resource {

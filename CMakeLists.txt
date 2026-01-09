@@ -14,5 +14,5 @@ endif()
 add_subdirectory(core)
 add_subdirectory(dps150)
 add_subdirectory(dp100)
-add_subdirectory(gui)
+add_subdirectory(ui)
 

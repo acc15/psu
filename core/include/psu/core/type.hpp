@@ -6,7 +6,7 @@
 #include <utility>
 #include <unordered_map>
 
-namespace psu {
+namespace psu::core {
 
 enum class type {
     UINT,

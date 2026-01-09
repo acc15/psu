@@ -7,7 +7,7 @@ pkg_check_modules(libserialport REQUIRED IMPORTED_TARGET libserialport)
 add_library(dps150)
 
 target_sources(dps150 PUBLIC FILE_SET HEADERS BASE_DIRS include FILES 
-    include/psu/dps150.hpp 
+    include/psu/dps150/dps150.hpp 
 )
 target_sources(dps150 PRIVATE 
     src/dps150.cpp
